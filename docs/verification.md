@@ -1,25 +1,28 @@
 # ผลการตรวจและข้อจำกัด
 
-วันที่ตรวจ: 31 ตุลาคม 2026 — หลักฐานจากเครื่องพัฒนานี้ ไม่ใช่บริการ production
+ตรวจรอบสุดท้าย: 1 พฤศจิกายน 2026 — หลักฐานจากเครื่องพัฒนานี้ ไม่ใช่บริการ production
+
+ผล load/restore ด้านล่างบันทึกเมื่อ 31 ตุลาคม 2026; ดู [ผล code review และข้อแก้ไข](review.md)
 
 ## สิ่งที่รันจริง
 
-| การตรวจ | ผลก่อน final review |
-| --- | --- |
-| Unit tests | 10 ผ่าน: กติกาเวลา, config, เวลาไทย และ inventory example |
-| PostgreSQL integration | 14 ผ่าน: sessions/CSRF, authorization, concurrent booking, exclusion โดยตรง, disable/book, rollback, cancellation และ HTTP/health boundaries |
-| Chromium E2E | 4 ผ่าน: สมัคร–จอง–ยกเลิก, ผู้ดูแล, mobile error/overflow และ conflict UI |
-| TypeScript / ESLint / build | ตรวจซ้ำใน final verification หลัง code review |
-| Docker Compose clean build | แอปและ PostgreSQL healthy; seed ทำงาน |
-| Runtime dependency audit | 0 vulnerabilities จาก npm audit --omit=dev ในวันที่ตรวจ |
-| Restore drill | pg_dump/pg_restore ไปฐานใหม่ สำเร็จและ fingerprint ตรง |
-| Race lab | naive 2 แถว; constraint 1 สำเร็จ/1 ถูกปฏิเสธ เหลือ 1 แถว |
+| การตรวจ                     | ผลการตรวจ                                                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit tests                  | 10 ผ่าน: กติกาเวลา, config, เวลาไทย และ inventory example                                                                                    |
+| PostgreSQL integration      | 15 ผ่าน: sessions/CSRF, authorization, concurrent booking, exclusion โดยตรง, disable/book, rollback, cancellation และ HTTP/health boundaries |
+| Chromium E2E                | 4 ผ่าน: สมัคร–จอง–ยกเลิก, ผู้ดูแล, mobile error/overflow และ conflict UI                                                                     |
+| TypeScript / ESLint / build | ผ่านหลังแก้ review findings                                                                                                                  |
+| Docker Compose clean build  | แอปและ PostgreSQL healthy; seed ทำงาน                                                                                                        |
+| Runtime dependency audit    | 0 vulnerabilities จาก npm audit --omit=dev ในวันที่ตรวจ                                                                                      |
+| Restore drill               | pg_dump/pg_restore ไปฐานใหม่ สำเร็จและ fingerprint ตรง                                                                                       |
+| Race lab                    | naive 2 แถว; constraint 1 สำเร็จ/1 ถูกปฏิเสธ เหลือ 1 แถว                                                                                     |
 
 ## สภาพแวดล้อม
 
 - macOS ARM64; host Node v26.10.0, npm 11.19.1
 - Docker image ใช้ Node 24 บน Debian slim; PostgreSQL 17 Alpine
-- Local test DB พอร์ต 55432; Compose demo DB พอร์ต 55433 เพื่อไม่ชนกัน
+- ส่งมอบบน Compose PostgreSQL พอร์ต 55432 โดยแยกฐาน demo, integration, E2E และ race lab
+- ช่วงทดลองวันที่ 31 ตุลาคมใช้ Compose demo DB พอร์ต 55433; ปรับกลับค่ามาตรฐานและรันทดสอบซ้ำวันที่ 1 พฤศจิกายน
 - Demo UI/API พอร์ต 3000; browser test server แยกพอร์ต 3100
 - ยังไม่ได้รัน GitHub Actions บน GitHub เพราะยังไม่มี remote repository
 

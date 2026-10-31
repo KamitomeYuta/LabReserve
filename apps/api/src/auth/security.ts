@@ -22,8 +22,11 @@ const options = (c: Config) => ({
   secure: c.secure,
   path: '/',
 });
-const equal = (a: string, b: string) =>
-  a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
+const equal = (a: string, b: string) => {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && timingSafeEqual(left, right);
+};
 export function issueCsrf(res: Response, c: Config) {
   const nonce = randomBytes(32).toString('hex');
   const token = `${nonce}.${createHmac('sha256', c.csrfSecret).update(nonce).digest('hex')}`;

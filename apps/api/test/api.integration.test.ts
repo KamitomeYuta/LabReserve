@@ -108,6 +108,17 @@ describe('authentication and equipment boundaries', () => {
     expect((await c.agent.get('/api/v1/equipment/not-a-uuid')).status).toBe(400);
     expect((await c.agent.get('/api/v1/equipment?q=%27%20OR%201=1--')).body.total).toBe(0);
   });
+  it('rejects a non-ASCII CSRF header without returning a server error', async () => {
+    const c = await client();
+    const result = await c.agent
+      .post('/api/v1/auth/logout')
+      .set('Origin', config.origin)
+      .set('X-CSRF-Token', 'é'.repeat(64) + 'a')
+      .send({});
+    expect(result.status).toBe(403);
+    expect(result.body.error.code).toBe('CSRF_FAILED');
+    expect((await c.agent.get('/api/v1/auth/me')).status).toBe(200);
+  });
 });
 
 describe('transactional reservations', () => {
