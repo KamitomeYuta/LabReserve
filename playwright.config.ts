@@ -1,0 +1,2 @@
+import {defineConfig} from '@playwright/test';
+export default defineConfig({testDir:'e2e',fullyParallel:false,workers:1,retries:0,use:{baseURL:'http://localhost:3000',trace:'retain-on-failure'},webServer:{command:'npm run start',url:'http://localhost:3000/health/ready',reuseExistingServer:!process.env.CI,env:{NODE_ENV:'test',APP_ORIGIN:'http://localhost:3000',DATABASE_URL:process.env.E2E_DATABASE_URL??'postgres://labreserve:labreserve_local@127.0.0.1:55432/labreserve_e2e_test',CSRF_SECRET:'e2e-only-secret-more-than-32-characters'},timeout:30000}});
