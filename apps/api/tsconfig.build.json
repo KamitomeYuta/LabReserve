@@ -5,12 +5,6 @@
     "outDir": "dist",
     "rootDir": "../.."
   },
-  "include": [
-    "src",
-    "../../packages/contracts/src"
-  ],
-  "exclude": [
-    "test",
-    "scripts"
-  ]
+  "include": ["src", "scripts", "../../packages/contracts/src"],
+  "exclude": ["test"]
 }

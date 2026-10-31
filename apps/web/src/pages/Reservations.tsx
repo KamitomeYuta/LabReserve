@@ -1,19 +1,196 @@
-import {useState} from 'react';
-import {Link,useParams} from 'react-router-dom';
-import {ArrowLeft,ArrowUpRight,CalendarDays,Check,Clock3} from 'lucide-react';
-import type {PageResult,Reservation,User} from '../../../../packages/contracts/src/index.js';
-import {api} from '../api.js';
-import {ErrorNotice,Loading,Pagination,useLoad} from '../components.js';
-import {displayDate} from '../dates.js';
-const phaseLabel={upcoming:'กำลังจะมาถึง',active:'อยู่ในช่วงจอง',completed:'สิ้นสุดแล้ว',cancelled:'ยกเลิกแล้ว'};
-export function ReservationList({all=false}:{all?:boolean}){
-  const [page,setPage]=useState(1);const state=useLoad(()=>api<PageResult<Reservation>>(`/reservations?page=${page}&scope=${all?'all':'mine'}`),`${page}:${all}`);
-  return <><section className="page-heading"><div><span className="eyebrow">YOUR TIME TO CREATE</span><h1>{all?'รายการจองทั้งหมด':'การจองของฉัน'}<span className="accent">.</span></h1><p className="muted">ติดตามช่วงเวลาและรายละเอียดการทดลองครั้งถัดไป</p></div></section><ErrorNotice error={state.error}/>{state.busy?<Loading/>:state.data&&<><div className="reservation-list">{state.data.items.map(item=><Link to={`/reservations/${item.id}`} className="panel reservation-row" key={item.id}><div className="reservation-icon"><CalendarDays size={25}/></div><div className="reservation-title"><span className="eyebrow">{item.assetCode}</span><h3>{item.equipmentName}</h3><small>{displayDate(item.startAt)} — {displayDate(item.endAt)}</small></div><span className={`badge ${item.phase==='cancelled'?'inactive':'available'}`}>{phaseLabel[item.phase]}</span><ArrowUpRight size={20}/></Link>)}</div>{state.data.total===0&&<div className="empty"><CalendarDays size={38}/><h2>ยังไม่มีรายการจอง</h2><p>เริ่มจากเลือกอุปกรณ์สำหรับโปรเจกต์ของคุณ</p><Link to="/" className="primary">สำรวจอุปกรณ์ <ArrowUpRight size={18}/></Link></div>}<Pagination {...state.data} onChange={setPage}/></>}</>;
+import { useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import { ArrowLeft, ArrowUpRight, CalendarDays, Check, Clock3 } from 'lucide-react';
+import type { PageResult, Reservation, User } from '../../../../packages/contracts/src/index.js';
+import { api } from '../api.js';
+import { ErrorNotice, Loading, Pagination, useLoad } from '../components.js';
+import { displayDate } from '../dates.js';
+const phaseLabel = {
+  upcoming: 'กำลังจะมาถึง',
+  active: 'อยู่ในช่วงจอง',
+  completed: 'สิ้นสุดแล้ว',
+  cancelled: 'ยกเลิกแล้ว',
+};
+export function ReservationList({ all = false }: { all?: boolean }) {
+  const [page, setPage] = useState(1);
+  const state = useLoad(
+    () => api<PageResult<Reservation>>(`/reservations?page=${page}&scope=${all ? 'all' : 'mine'}`),
+    `${page}:${all}`,
+  );
+  return (
+    <>
+      <section className="page-heading">
+        <div>
+          <span className="eyebrow">YOUR TIME TO CREATE</span>
+          <h1>
+            {all ? 'รายการจองทั้งหมด' : 'การจองของฉัน'}
+            <span className="accent">.</span>
+          </h1>
+          <p className="muted">ติดตามช่วงเวลาและรายละเอียดการทดลองครั้งถัดไป</p>
+        </div>
+      </section>
+      <ErrorNotice error={state.error} />
+      {state.busy ? (
+        <Loading />
+      ) : (
+        state.data && (
+          <>
+            <div className="reservation-list">
+              {state.data.items.map((item) => (
+                <Link
+                  to={`/reservations/${item.id}`}
+                  className="panel reservation-row"
+                  key={item.id}
+                >
+                  <div className="reservation-icon">
+                    <CalendarDays size={25} />
+                  </div>
+                  <div className="reservation-title">
+                    <span className="eyebrow">{item.assetCode}</span>
+                    <h3>{item.equipmentName}</h3>
+                    <small>
+                      {displayDate(item.startAt)} — {displayDate(item.endAt)}
+                    </small>
+                  </div>
+                  <span
+                    className={`badge ${item.phase === 'cancelled' ? 'inactive' : 'available'}`}
+                  >
+                    {phaseLabel[item.phase]}
+                  </span>
+                  <ArrowUpRight size={20} />
+                </Link>
+              ))}
+            </div>
+            {state.data.total === 0 && (
+              <div className="empty">
+                <CalendarDays size={38} />
+                <h2>ยังไม่มีรายการจอง</h2>
+                <p>เริ่มจากเลือกอุปกรณ์สำหรับโปรเจกต์ของคุณ</p>
+                <Link to="/" className="primary">
+                  สำรวจอุปกรณ์ <ArrowUpRight size={18} />
+                </Link>
+              </div>
+            )}
+            <Pagination {...state.data} onChange={setPage} />
+          </>
+        )
+      )}
+    </>
+  );
 }
-export function ReservationDetail({user}:{user:User}){
-  const {id}=useParams();const state=useLoad(()=>api<{item:Reservation}>(`/reservations/${id}`),id!);const [reason,setReason]=useState(''),[error,setError]=useState<unknown>(),[busy,setBusy]=useState(false);
-  async function cancel(){setError(undefined);setBusy(true);try{await api(`/reservations/${id}/cancel`,'POST',{reason});state.reload();}catch(e){setError(e);}finally{setBusy(false);}}
-  if(state.busy)return <Loading/>;if(!state.data)return <ErrorNotice error={state.error}/>;const item=state.data.item;
-  const canCancel=item.status==='confirmed'&&Date.now()<+new Date(user.role==='admin'?item.endAt:item.startAt);
-  return <><Link to="/reservations" className="back-link"><ArrowLeft size={16}/> กลับไปรายการจอง</Link><div className="page-heading"><div><span className="eyebrow">RESERVATION / {item.id.slice(0,8)}</span><h1>รายละเอียดการจอง<span className="accent">.</span></h1></div><span className={`badge ${item.phase==='cancelled'?'inactive':'available'}`}>{phaseLabel[item.phase]}</span></div><div className="detail-grid"><section className="panel"><h2>{item.equipmentName}</h2><p className="muted">{item.assetCode}</p><dl className="facts"><div><dt>เวลาเริ่ม</dt><dd>{displayDate(item.startAt)}</dd></div><div><dt>เวลาสิ้นสุด</dt><dd>{displayDate(item.endAt)}</dd></div><div><dt>เขตเวลา</dt><dd>Asia/Bangkok (UTC+7)</dd></div>{item.cancellationReason&&<div><dt>เหตุผลยกเลิก</dt><dd>{item.cancellationReason}</dd></div>}</dl>{canCancel?<div className="cancel-area"><h3>เปลี่ยนแผนได้เสมอ ก่อนเวลาเริ่ม</h3><label>เหตุผลยกเลิก {user.role==='admin'?'(จำเป็นสำหรับผู้ดูแล)':'(ไม่บังคับ)'}<textarea value={reason} maxLength={500} onChange={e=>setReason(e.target.value)}/></label><ErrorNotice error={error}/><button className="danger" disabled={busy||(user.role==='admin'&&!reason.trim())} onClick={cancel}>ยกเลิกการจอง</button></div>:<div className="notice"><Clock3 size={18}/> รายการนี้ไม่อยู่ในช่วงที่ยกเลิกได้</div>}</section><section className="panel"><span className="eyebrow">ACTIVITY LOG</span><h2>ประวัติรายการ</h2><ol className="timeline">{item.events?.map(event=><li key={event.id}><div className="timeline-dot"><Check size={13}/></div><strong>{event.eventType==='created'?'สร้างรายการจอง':'ยกเลิกรายการจอง'}</strong><p>{displayDate(event.createdAt)}</p><small>ผู้ดำเนินการ: {event.actorId===user.id?'คุณ':event.actorId.slice(0,8)}</small>{event.metadata.reason&&<p>{event.metadata.reason}</p>}</li>)}</ol><p className="muted small">สถานะและประวัติถูกบันทึกพร้อมกันใน transaction เดียว</p></section></div></>;
+export function ReservationDetail({ user }: { user: User }) {
+  const { id } = useParams();
+  const state = useLoad(() => api<{ item: Reservation }>(`/reservations/${id}`), id!);
+  const [reason, setReason] = useState(''),
+    [error, setError] = useState<unknown>(),
+    [busy, setBusy] = useState(false);
+  async function cancel() {
+    setError(undefined);
+    setBusy(true);
+    try {
+      await api(`/reservations/${id}/cancel`, 'POST', { reason });
+      state.reload();
+    } catch (e) {
+      setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (state.busy) return <Loading />;
+  if (!state.data) return <ErrorNotice error={state.error} />;
+  const item = state.data.item;
+  const canCancel =
+    item.status === 'confirmed' &&
+    Date.now() < +new Date(user.role === 'admin' ? item.endAt : item.startAt);
+  return (
+    <>
+      <Link to="/reservations" className="back-link">
+        <ArrowLeft size={16} /> กลับไปรายการจอง
+      </Link>
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">RESERVATION / {item.id.slice(0, 8)}</span>
+          <h1>
+            รายละเอียดการจอง<span className="accent">.</span>
+          </h1>
+        </div>
+        <span className={`badge ${item.phase === 'cancelled' ? 'inactive' : 'available'}`}>
+          {phaseLabel[item.phase]}
+        </span>
+      </div>
+      <div className="detail-grid">
+        <section className="panel">
+          <h2>{item.equipmentName}</h2>
+          <p className="muted">{item.assetCode}</p>
+          <dl className="facts">
+            <div>
+              <dt>เวลาเริ่ม</dt>
+              <dd>{displayDate(item.startAt)}</dd>
+            </div>
+            <div>
+              <dt>เวลาสิ้นสุด</dt>
+              <dd>{displayDate(item.endAt)}</dd>
+            </div>
+            <div>
+              <dt>เขตเวลา</dt>
+              <dd>Asia/Bangkok (UTC+7)</dd>
+            </div>
+            {item.cancellationReason && (
+              <div>
+                <dt>เหตุผลยกเลิก</dt>
+                <dd>{item.cancellationReason}</dd>
+              </div>
+            )}
+          </dl>
+          {canCancel ? (
+            <div className="cancel-area">
+              <h3>เปลี่ยนแผนได้เสมอ ก่อนเวลาเริ่ม</h3>
+              <label>
+                เหตุผลยกเลิก {user.role === 'admin' ? '(จำเป็นสำหรับผู้ดูแล)' : '(ไม่บังคับ)'}
+                <textarea
+                  value={reason}
+                  maxLength={500}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </label>
+              <ErrorNotice error={error} />
+              <button
+                className="danger"
+                disabled={busy || (user.role === 'admin' && !reason.trim())}
+                onClick={cancel}
+              >
+                ยกเลิกการจอง
+              </button>
+            </div>
+          ) : (
+            <div className="notice">
+              <Clock3 size={18} /> รายการนี้ไม่อยู่ในช่วงที่ยกเลิกได้
+            </div>
+          )}
+        </section>
+        <section className="panel">
+          <span className="eyebrow">ACTIVITY LOG</span>
+          <h2>ประวัติรายการ</h2>
+          <ol className="timeline">
+            {item.events?.map((event) => (
+              <li key={event.id}>
+                <div className="timeline-dot">
+                  <Check size={13} />
+                </div>
+                <strong>
+                  {event.eventType === 'created' ? 'สร้างรายการจอง' : 'ยกเลิกรายการจอง'}
+                </strong>
+                <p>{displayDate(event.createdAt)}</p>
+                <small>
+                  ผู้ดำเนินการ: {event.actorId === user.id ? 'คุณ' : event.actorId.slice(0, 8)}
+                </small>
+                {event.metadata.reason && <p>{event.metadata.reason}</p>}
+              </li>
+            ))}
+          </ol>
+          <p className="muted small">สถานะและประวัติถูกบันทึกพร้อมกันใน transaction เดียว</p>
+        </section>
+      </div>
+    </>
+  );
 }

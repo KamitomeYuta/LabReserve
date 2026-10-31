@@ -1,0 +1,10 @@
+.git
+node_modules
+**/dist
+.env
+.env.*
+.superpowers
+.local
+test-results
+playwright-report
+docs/images

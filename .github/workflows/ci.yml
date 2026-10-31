@@ -1,0 +1,52 @@
+name: verify
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: labreserve
+          POSTGRES_PASSWORD: local_ci_only
+          POSTGRES_DB: labreserve_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U labreserve -d labreserve_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgres://labreserve:local_ci_only@localhost:5432/labreserve_test
+      E2E_DATABASE_URL: postgres://labreserve:local_ci_only@localhost:5432/labreserve_e2e_test
+      CSRF_SECRET: ci-only-secret-with-at-least-32-characters
+      APP_ORIGIN: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run format:check
+      - run: npm test
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Prepare browser database
+        env:
+          PGPASSWORD: local_ci_only
+          DATABASE_URL: ${{ env.E2E_DATABASE_URL }}
+          ALLOW_DEMO_SEED: '1'
+        run: |
+          createdb -h localhost -U labreserve labreserve_e2e_test
+          npm run db:migrate
+          npm run db:seed
+      - run: npm run test:e2e
+      - run: npm audit --omit=dev --audit-level=high
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-diagnostics
+          path: test-results/

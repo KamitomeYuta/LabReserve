@@ -12,8 +12,15 @@ describe('booking boundaries', () => {
     expect(() => assertBookingWindow(new Date('2029-12-31'), now, now)).toThrow();
   });
   it('requires an explicit timezone offset', () => {
-    expect(intervalSchema.safeParse({ startAt: '2030-01-01T10:00', endAt: '2030-01-01T11:00' }).success).toBe(false);
-    expect(intervalSchema.safeParse({ startAt: '2030-01-01T10:00:00+07:00', endAt: '2030-01-01T11:00:00+07:00' }).success).toBe(true);
+    expect(
+      intervalSchema.safeParse({ startAt: '2030-01-01T10:00', endAt: '2030-01-01T11:00' }).success,
+    ).toBe(false);
+    expect(
+      intervalSchema.safeParse({
+        startAt: '2030-01-01T10:00:00+07:00',
+        endAt: '2030-01-01T11:00:00+07:00',
+      }).success,
+    ).toBe(true);
   });
   it('blocks member cancellation at start', () => {
     expect(() => assertCancellation('member', now, new Date('2030-01-02'), '', now)).toThrow();

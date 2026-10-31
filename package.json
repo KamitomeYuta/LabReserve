@@ -21,11 +21,13 @@
     "check": "npm run typecheck && npm run lint",
     "test": "vitest run --config vitest.config.ts",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "test:e2e": "playwright test",
+    "test:e2e": "tsx scripts/prepare-e2e.ts && playwright test",
     "db:migrate": "tsx apps/api/scripts/migrate.ts",
     "db:seed": "tsx apps/api/scripts/seed.ts",
     "db:admin": "tsx apps/api/scripts/bootstrap-admin.ts",
-    "load:test": "tsx scripts/load-test.ts"
+    "load:test": "tsx scripts/load-test.ts",
+    "lesson:cli": "tsx examples/inventory.cli.ts",
+    "lesson:race": "tsx examples/race-lab.ts"
   },
   "dependencies": {
     "argon2": "^0.44.0",

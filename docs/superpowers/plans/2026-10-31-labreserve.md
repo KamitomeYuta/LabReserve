@@ -8,6 +8,7 @@
 **Spec:** docs/superpowers/specs/2026-10-31-lab-reservation-design.md (approved by user).
 
 ## Global Constraints
+
 - Equipment is one physical asset; intervals [start,end); timestamps stored as timestamptz and displayed in Asia/Bangkok.
 - confirmed/cancelled persisted; derived upcoming/active/completed status.
 - Member cancel before start; admin cancel before end with reason.
@@ -16,6 +17,7 @@
 - Thai UI/course; no secrets in repository/logs. Explain AI authorship honestly.
 
 ## Review Focus
+
 - DST/offset-free date input must not silently shift a reservation (Task 1 and 4).
 - Malformed ids, query limits, and oversized request bodies return safe errors (Task 2/3).
 - Session rotation, logout, expiry and CSRF prevent stale/forged access (Task 2).
@@ -23,52 +25,65 @@
 - Failed database operations roll back state and history together; restore verifies actual records (Task 3/5).
 
 ### Task 1: Workspace and executable domain rules
+
 **Files:** package.json, tsconfig.base.json, packages/contracts/src/index.ts, apps/api/src/reservations/rules.ts, apps/api/test/rules.test.ts, config files.
 **Interfaces:** intervalSchema -> {startAt:string,endAt:string}; assertBookingWindow(start,end,now):void; assertCancellation(role,start,end,reason,now):void.
+
 - [ ] Write literal boundary tests: equal/end-before-start rejected, adjacent interval accepted by DB later, start==now allowed, member at start rejected, admin before end requires reason, offset required.
 - [ ] Run npm test; observe missing rules/failed assertions.
 - [ ] Implement schemas, rules and AppError with HTTP status/code.
 - [ ] Run npm test and typecheck; expect all domain tests pass. Commit.
 
 ### Task 2: Database, sessions and equipment API
-**Files:** apps/api/migrations/001_initial.sql; src/db.ts, config.ts, app.ts, auth/*, equipment/*, scripts/{migrate,seed,bootstrap-admin}.ts; test/api.test.ts.
+
+**Files:** apps/api/migrations/001_initial.sql; src/db.ts, config.ts, app.ts, auth/_, equipment/_, scripts/{migrate,seed,bootstrap-admin}.ts; test/api.test.ts.
 **Interfaces:** createApp(pool,config):Express; migrate(pool):Promise<void>; /api/v1/auth/{csrf,register,login,logout,me}; /api/v1/equipment GET/POST; /equipment/:id GET/PATCH. Auth responses {user}; list {items,total,page,pageSize}; errors {error:{code,message,requestId}}.
+
 - [ ] Write integration tests against dedicated real PostgreSQL for register/login/me/logout, password mismatch, duplicate normalized email, CSRF, expired session, admin-only equipment edits, pagination and malformed ids.
 - [ ] Run npm run test:integration; expect missing behavior failure.
 - [ ] Implement SQL schema/migrations, transaction helper, hashed passwords and tokens, CSRF, session rotation, safe DTOs, validation and centralized errors.
 - [ ] Run npm test and npm run test:integration; expect all pass. Commit.
 
 ### Task 3: Transactional reservation workflow
+
 **Files:** src/reservations/{repository,service,routes}.ts; test/reservations.test.ts.
 **Interfaces:** /api/v1/reservations GET/POST; /:id GET; /:id/cancel POST; GET /equipment/:id/availability?startAt&endAt. Reservation DTO contains equipmentName, startAt/endAt,status,phase, own accessible events.
+
 - [ ] Write tests for concurrent overlap (201,409), touching intervals (201,201), cancelled frees slot, ownership, member/admin deadlines, inactive equipment, rollback and repeated cancel.
 - [ ] Run integration tests; expect missing endpoints fail.
 - [ ] Implement row locking and transactions, map exclusion violation to 409, events with state changes, pagination/filtering and scoped history.
 - [ ] Run full unit/integration suite; expect pass. Commit.
 
 ### Task 4: Accessible web UI
+
 **Files:** apps/web/src/{App,api,styles,dates}.*, components and pages; e2e/app.spec.ts; playwright.config.ts.
 **Interfaces:** consumes Task 2/3 routes with CSRF header, credentials, typed DTOs. Bangkok datetime-local conversion done explicitly.
+
 - [ ] Write date conversion tests and browser flow tests (register, book, see conflict, cancel, admin edit, mobile).
 - [ ] Run tests before implementation; record failure.
 - [ ] Implement Thai responsive UI, accessible labels, error/loading/empty states, pagination, history, admin forms.
 - [ ] Run all tests and production build; manually inspect screenshots and keyboard flow. Commit.
 
 ### Task 5: Runtime, delivery and operational evidence
+
 **Files:** Dockerfile, compose.yaml, .github/workflows/ci.yml, src/server.ts, scripts/{load-test,restore-check}.*, docs/{operations,verification}.md, docs/openapi.yaml.
 **Interfaces:** npm run dev/build/start/check/test/test:integration/test:e2e; /health/live and /health/ready; DATABASE_URL and APP_ORIGIN configuration.
+
 - [ ] Add tests proving readiness failure is 503, safe malformed JSON errors, production config rejection without secure settings.
 - [ ] Run failing tests then implement guards, logging, shutdown and deployment scripts.
 - [ ] Run fresh Compose path, load test with recorded conditions and real pg_dump/restore drill; record exact evidence and any environment limits.
 - [ ] Run check/build and all tests. Commit.
 
 ### Task 6: Thai learning course and portfolio handoff
-**Files:** README.md, docs/architecture.md, docs/adr/*, docs/lessons/{00..12}.md, docs/solutions/*, examples/*, docs/portfolio.md.
+
+**Files:** README.md, docs/architecture.md, docs/adr/_, docs/lessons/{00..12}.md, docs/solutions/_, examples/*, docs/portfolio.md.
 **Interfaces:** every lesson references real files/commands from Tasks 1–5; runnable CLI and isolated race lab.
+
 - [ ] Create foundation examples with tests first; run fail then implement and pass.
 - [ ] Write 13 lessons with prerequisites, goals, file tour, commands, expected output, troubleshooting, exercise, separate solution and comprehension checks.
 - [ ] Cross-check commands/links against repository; run examples and quickstart checks.
 - [ ] Run final verification, independent whole-project code review, fix important findings with regression tests, record actual limitations. Commit.
 
 ## Execution decision
+
 Proceed inline under the user's authorization to plan and develop to completion; do not request repeated approval for routine implementation. A fresh reviewer will inspect the final implementation. New repository on feat/labreserve, no pre-existing work to isolate.

@@ -5,29 +5,45 @@ import { createApp } from '../src/app.js';
 import { migrate } from '../src/db.js';
 import { readConfig } from '../src/config.js';
 
-const url = process.env.TEST_DATABASE_URL ?? 'postgres://labreserve:labreserve_local@127.0.0.1:55432/labreserve_test';
-if (!new URL(url).pathname.endsWith('_test')) throw new Error('Integration database name must end in _test');
+const url =
+  process.env.TEST_DATABASE_URL ??
+  'postgres://labreserve:labreserve_local@127.0.0.1:55432/labreserve_test';
+if (!new URL(url).pathname.endsWith('_test'))
+  throw new Error('Integration database name must end in _test');
 const pool = new Pool({ connectionString: url });
-const config = readConfig({ NODE_ENV: 'test', DATABASE_URL: url, APP_ORIGIN: 'http://localhost:3000', CSRF_SECRET: 'test-only-secret-with-at-least-32-characters' });
+const config = readConfig({
+  NODE_ENV: 'test',
+  DATABASE_URL: url,
+  APP_ORIGIN: 'http://localhost:3000',
+  CSRF_SECRET: 'test-only-secret-with-at-least-32-characters',
+});
 const app = createApp(pool, config);
 type Client = Awaited<ReturnType<typeof client>>;
 async function client(email = 'member@example.test', role = 'member') {
   const agent = request.agent(app);
   const csrf = (await agent.get('/api/v1/auth/csrf')).body.csrfToken as string;
-  const write = (path: string, data: object) => agent.post(`/api/v1${path}`).set('Origin', config.origin).set('X-CSRF-Token', csrf).send(data);
+  const write = (path: string, data: object) =>
+    agent.post(`/api/v1${path}`).set('Origin', config.origin).set('X-CSRF-Token', csrf).send(data);
   const res = await write('/auth/register', { email, password: 'Learning-demo-123!' });
   expect(res.status).toBe(201);
-  if (role === 'admin') await pool.query("UPDATE users SET role='admin' WHERE id=$1", [res.body.user.id]);
+  if (role === 'admin')
+    await pool.query("UPDATE users SET role='admin' WHERE id=$1", [res.body.user.id]);
   return { agent, csrf, write, id: res.body.user.id as string };
 }
 async function equipment(admin: Client, code = 'CAM-001') {
-  const res = await admin.write('/equipment', { assetCode: code, name: 'กล้องสำหรับห้องแล็บ', description: 'กล้องทดสอบ' });
+  const res = await admin.write('/equipment', {
+    assetCode: code,
+    name: 'กล้องสำหรับห้องแล็บ',
+    description: 'กล้องทดสอบ',
+  });
   expect(res.status).toBe(201);
   return res.body.item.id as string;
 }
 const future = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
 beforeAll(async () => migrate(pool));
-beforeEach(async () => { await pool.query('TRUNCATE reservation_events, reservations, equipment, sessions, users CASCADE'); });
+beforeEach(async () => {
+  await pool.query('TRUNCATE reservation_events, reservations, equipment, sessions, users CASCADE');
+});
 afterAll(async () => pool.end());
 
 describe('authentication and equipment boundaries', () => {
@@ -39,17 +55,44 @@ describe('authentication and equipment boundaries', () => {
   });
   it('rejects duplicate email and wrong password, rotates login and invalidates logout', async () => {
     const c = await client();
-    expect((await c.write('/auth/register', { email: 'MEMBER@example.test', password: 'Learning-demo-123!' })).status).toBe(409);
-    expect((await c.write('/auth/login', { email: 'member@example.test', password: 'wrong-password' })).status).toBe(401);
-    expect((await c.write('/auth/login', { email: 'member@example.test', password: 'Learning-demo-123!' })).status).toBe(200);
+    expect(
+      (
+        await c.write('/auth/register', {
+          email: 'MEMBER@example.test',
+          password: 'Learning-demo-123!',
+        })
+      ).status,
+    ).toBe(409);
+    expect(
+      (await c.write('/auth/login', { email: 'member@example.test', password: 'wrong-password' }))
+        .status,
+    ).toBe(401);
+    expect(
+      (
+        await c.write('/auth/login', {
+          email: 'member@example.test',
+          password: 'Learning-demo-123!',
+        })
+      ).status,
+    ).toBe(200);
     expect(Number((await pool.query('SELECT count(*) FROM sessions')).rows[0].count)).toBe(1);
     expect((await c.write('/auth/logout', {})).status).toBe(204);
     expect((await c.agent.get('/api/v1/auth/me')).status).toBe(401);
   });
   it('rejects missing CSRF, foreign origins and expired sessions', async () => {
     const c = await client();
-    expect((await c.agent.post('/api/v1/auth/logout').set('Origin', config.origin).send({})).status).toBe(403);
-    expect((await c.agent.post('/api/v1/auth/logout').set('Origin', 'https://evil.test').set('X-CSRF-Token', c.csrf).send({})).status).toBe(403);
+    expect(
+      (await c.agent.post('/api/v1/auth/logout').set('Origin', config.origin).send({})).status,
+    ).toBe(403);
+    expect(
+      (
+        await c.agent
+          .post('/api/v1/auth/logout')
+          .set('Origin', 'https://evil.test')
+          .set('X-CSRF-Token', c.csrf)
+          .send({})
+      ).status,
+    ).toBe(403);
     await pool.query("UPDATE sessions SET expires_at=now()-interval '1 minute'");
     expect((await c.agent.get('/api/v1/auth/me')).status).toBe(401);
   });
@@ -68,39 +111,86 @@ describe('authentication and equipment boundaries', () => {
 });
 
 describe('transactional reservations', () => {
+  it('enforces exclusion even when bypassing application locks', async () => {
+    const a = await client('admin@example.test', 'admin');
+    const id = await equipment(a);
+    await pool.query(
+      'INSERT INTO reservations(equipment_id,user_id,start_at,end_at) VALUES($1,$2,$3,$4)',
+      [id, a.id, future(1), future(3)],
+    );
+    await expect(
+      pool.query(
+        'INSERT INTO reservations(equipment_id,user_id,start_at,end_at) VALUES($1,$2,$3,$4)',
+        [id, a.id, future(2), future(4)],
+      ),
+    ).rejects.toMatchObject({ code: '23P01' });
+  });
+  it('serializes disabling equipment against a pending booking', async () => {
+    const a = await client('admin@example.test', 'admin');
+    const id = await equipment(a);
+    const db = await pool.connect();
+    await db.query('BEGIN');
+    await db.query('SELECT id FROM equipment WHERE id=$1 FOR UPDATE', [id]);
+    const pending = a
+      .write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) })
+      .then((r) => r);
+    await db.query('UPDATE equipment SET active=false WHERE id=$1', [id]);
+    await db.query('COMMIT');
+    db.release();
+    expect((await pending).status).toBe(409);
+  });
   it('allows only one overlapping concurrent booking and returns conflict', async () => {
     const a = await client('admin@example.test', 'admin');
     const c = await client();
     const id = await equipment(a);
     const body = { equipmentId: id, startAt: future(1), endAt: future(2) };
-    const results = await Promise.all([c.write('/reservations', body), a.write('/reservations', body)]);
-    expect(results.map(r => r.status).sort()).toEqual([201, 409]);
+    const results = await Promise.all([
+      c.write('/reservations', body),
+      a.write('/reservations', body),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
     expect(Number((await pool.query('SELECT count(*) FROM reservations')).rows[0].count)).toBe(1);
-    expect(Number((await pool.query('SELECT count(*) FROM reservation_events')).rows[0].count)).toBe(1);
+    expect(
+      Number((await pool.query('SELECT count(*) FROM reservation_events')).rows[0].count),
+    ).toBe(1);
   });
   it('allows adjacent bookings and makes cancelled time available', async () => {
     const a = await client('admin@example.test', 'admin');
     const c = await client();
     const id = await equipment(a);
-    const startAt = future(1), middle = future(2), endAt = future(3);
+    const startAt = future(1),
+      middle = future(2),
+      endAt = future(3);
     const first = await c.write('/reservations', { equipmentId: id, startAt, endAt: middle });
     expect(first.status).toBe(201);
-    expect((await c.write('/reservations', { equipmentId: id, startAt: middle, endAt })).status).toBe(201);
-    const availability = await c.agent.get(`/api/v1/equipment/${id}/availability`).query({startAt, endAt});
+    expect(
+      (await c.write('/reservations', { equipmentId: id, startAt: middle, endAt })).status,
+    ).toBe(201);
+    const availability = await c.agent
+      .get(`/api/v1/equipment/${id}/availability`)
+      .query({ startAt, endAt });
     expect(availability.body.items).toHaveLength(2);
     expect(availability.body.items[0]).not.toHaveProperty('userId');
     expect((await c.write(`/reservations/${first.body.item.id}/cancel`, {})).status).toBe(200);
-    expect((await c.write('/reservations', { equipmentId: id, startAt, endAt: middle })).status).toBe(201);
+    expect(
+      (await c.write('/reservations', { equipmentId: id, startAt, endAt: middle })).status,
+    ).toBe(201);
   });
   it('hides other users reservations and denies cancellation', async () => {
     const a = await client('admin@example.test', 'admin');
     const c = await client();
     const other = await client('other@example.test');
     const id = await equipment(a);
-    const booking = await c.write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) });
+    const booking = await c.write('/reservations', {
+      equipmentId: id,
+      startAt: future(1),
+      endAt: future(2),
+    });
     const path = `/api/v1/reservations/${booking.body.item.id}`;
     expect((await other.agent.get(path)).status).toBe(404);
-    expect((await other.write(`/reservations/${booking.body.item.id}/cancel`, {})).status).toBe(404);
+    expect((await other.write(`/reservations/${booking.body.item.id}/cancel`, {})).status).toBe(
+      404,
+    );
     expect((await other.agent.get('/api/v1/reservations')).body.total).toBe(0);
     const detail = await c.agent.get(path);
     expect(detail.body.item.events).toHaveLength(1);
@@ -110,32 +200,98 @@ describe('transactional reservations', () => {
     const a = await client('admin@example.test', 'admin');
     const c = await client();
     const id = await equipment(a);
-    expect((await c.write('/reservations', { equipmentId: id, startAt: future(-2), endAt: future(-1) })).status).toBe(400);
-    const b = await c.write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) });
-    const results = await Promise.all([c.write(`/reservations/${b.body.item.id}/cancel`, {}), c.write(`/reservations/${b.body.item.id}/cancel`, {})]);
-    expect(results.map(r => r.status).sort()).toEqual([200,409]);
-    expect(Number((await pool.query("SELECT count(*) FROM reservation_events WHERE event_type='cancelled'")).rows[0].count)).toBe(1);
-    expect((await a.agent.patch(`/api/v1/equipment/${id}`).set('Origin', config.origin).set('X-CSRF-Token', a.csrf).send({active: false})).status).toBe(200);
-    expect((await c.write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) })).status).toBe(409);
+    expect(
+      (await c.write('/reservations', { equipmentId: id, startAt: future(-2), endAt: future(-1) }))
+        .status,
+    ).toBe(400);
+    const b = await c.write('/reservations', {
+      equipmentId: id,
+      startAt: future(1),
+      endAt: future(2),
+    });
+    const results = await Promise.all([
+      c.write(`/reservations/${b.body.item.id}/cancel`, {}),
+      c.write(`/reservations/${b.body.item.id}/cancel`, {}),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(
+      Number(
+        (await pool.query("SELECT count(*) FROM reservation_events WHERE event_type='cancelled'"))
+          .rows[0].count,
+      ),
+    ).toBe(1);
+    expect(
+      (
+        await a.agent
+          .patch(`/api/v1/equipment/${id}`)
+          .set('Origin', config.origin)
+          .set('X-CSRF-Token', a.csrf)
+          .send({ active: false })
+      ).status,
+    ).toBe(200);
+    expect(
+      (await c.write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) }))
+        .status,
+    ).toBe(409);
   });
   it('rolls back reservation when history insertion fails', async () => {
     const a = await client('admin@example.test', 'admin');
     const c = await client();
     const id = await equipment(a);
-    await pool.query("ALTER TABLE reservation_events ADD CONSTRAINT test_fail_event CHECK (event_type <> 'created')");
+    await pool.query(
+      "ALTER TABLE reservation_events ADD CONSTRAINT test_fail_event CHECK (event_type <> 'created')",
+    );
     try {
-      expect((await c.write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) })).status).toBe(500);
+      expect(
+        (await c.write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) }))
+          .status,
+      ).toBe(500);
       expect(Number((await pool.query('SELECT count(*) FROM reservations')).rows[0].count)).toBe(0);
-    } finally { await pool.query('ALTER TABLE reservation_events DROP CONSTRAINT test_fail_event'); }
+    } finally {
+      await pool.query('ALTER TABLE reservation_events DROP CONSTRAINT test_fail_event');
+    }
   });
   it('enforces member deadline and admin reason on active reservations', async () => {
     const a = await client('admin@example.test', 'admin');
     const c = await client();
     const id = await equipment(a);
-    const b = await c.write('/reservations', { equipmentId: id, startAt: future(1), endAt: future(2) });
-    await pool.query("UPDATE reservations SET start_at=now()-interval '1 hour' WHERE id=$1", [b.body.item.id]);
+    const b = await c.write('/reservations', {
+      equipmentId: id,
+      startAt: future(1),
+      endAt: future(2),
+    });
+    await pool.query("UPDATE reservations SET start_at=now()-interval '1 hour' WHERE id=$1", [
+      b.body.item.id,
+    ]);
     expect((await c.write(`/reservations/${b.body.item.id}/cancel`, {})).status).toBe(409);
     expect((await a.write(`/reservations/${b.body.item.id}/cancel`, {})).status).toBe(400);
-    expect((await a.write(`/reservations/${b.body.item.id}/cancel`, {reason:'ส่งซ่อม'})).status).toBe(200);
+    expect(
+      (await a.write(`/reservations/${b.body.item.id}/cancel`, { reason: 'ส่งซ่อม' })).status,
+    ).toBe(200);
+  });
+});
+
+describe('operational boundaries', () => {
+  it('returns safe malformed/oversized JSON errors with request IDs', async () => {
+    const bad = await request(app)
+      .post('/api/v1/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{');
+    expect(bad.status).toBe(400);
+    expect(bad.body.error.code).toBe('INVALID_JSON');
+    expect(bad.body.error.requestId).toBeTruthy();
+    const huge = await request(app)
+      .post('/api/v1/auth/login')
+      .send({ password: 'x'.repeat(20000) });
+    expect(huge.status).toBe(413);
+    expect(JSON.stringify(huge.body)).not.toContain('stack');
+  });
+  it('readiness distinguishes unavailable database from liveness', async () => {
+    const unavailable = new Pool({ connectionString: url });
+    await unavailable.end();
+    const isolated = createApp(unavailable, config);
+    expect((await request(isolated).get('/health/live')).status).toBe(200);
+    expect((await request(isolated).get('/health/ready')).status).toBe(503);
+    expect((await request(app).get('/health/ready')).status).toBe(200);
   });
 });
