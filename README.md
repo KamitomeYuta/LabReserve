@@ -1,5 +1,7 @@
 # LabReserve
 
+**[เปิดเดโม LabReserve](https://labreserve-nx8c.onrender.com)** — สมัครสมาชิก เลือกอุปกรณ์ แล้วทดลองจองและยกเลิกได้ เว็บอาจใช้เวลาประมาณหนึ่งนาทีในการเปิดครั้งแรกหลังพักระบบ
+
 ระบบจองอุปกรณ์ห้องแล็บ พร้อมเส้นทางเรียน Software Development ภาษาไทยจากศูนย์
 
 ![หน้าคลังอุปกรณ์](docs/images/catalog.png)
@@ -16,7 +18,7 @@
 
 ## เผยแพร่ออนไลน์ฟรี
 
-ใช้ [คู่มือ Render Free + Neon Free](docs/deploy-free.md) และ `render.yaml` ที่รากโปรเจกต์ โดยใช้ Docker image เดิม มี HTTPS และ migration ก่อนเริ่ม server ยังต้องเชื่อมบัญชีและตรวจเว็บจริงก่อนมีลิงก์สาธารณะ
+ใช้ [คู่มือ Render Free + Neon Free](docs/deploy-free.md) และ `render.yaml` ที่รากโปรเจกต์ โดยใช้ Docker image เดิม มี HTTPS และ migration ก่อนเริ่ม server ตรวจการจองและยกเลิกผ่าน HTTPS ของเดโมแล้ว
 
 ## เปิด demo ด้วย Docker (เริ่มตรงนี้)
 
@@ -105,4 +107,4 @@ docs/solutions/            เฉลย แยกจากบทเรียน
 - [Deployment, rollback และ recovery](docs/operations.md)
 - [ผลการตรวจและข้อจำกัด](docs/verification.md)
 
-ก่อนนำไป production ต้องเลือก hosting/TLS/secrets, ทบทวน email verification/account recovery, abuse protection, privacy/retention และ backup ตามบริบท ระบบนี้ยังไม่ได้ deploy ไปบริการภายนอก
+ก่อนนำไป production ต้องเลือก hosting/TLS/secrets, ทบทวน email verification/account recovery, abuse protection, privacy/retention และ backup ตามบริบท เดโมเผยแพร่บน Render Free และเก็บข้อมูลบน Neon Free

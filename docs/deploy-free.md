@@ -1,6 +1,6 @@
 # เผยแพร่ LabReserve แบบไม่มีค่าใช้จ่าย
 
-สถานะ: เตรียม configuration แล้ว ยังไม่ได้สร้างบริการออนไลน์หรือทดสอบผ่าน HTTPS ของผู้ให้บริการจริง
+[เปิดเดโม LabReserve](https://labreserve-nx8c.onrender.com) — ตรวจผ่าน HTTPS เมื่อ 6 พฤศจิกายน 2026 เว็บใช้ Render Free เชื่อมกับโปรเจกต์ Neon Free ที่มีอยู่ในสิงคโปร์ (PostgreSQL 18)
 
 ## แบบที่ใช้
 
@@ -27,7 +27,7 @@ Render Free รัน Docker image เดิมซึ่งเสิร์ฟ Re
 
 นำ source ขึ้น repository ของคุณก่อนสร้าง Blueprint; เลือก branch ที่มี `render.yaml` และ Dockerfile นี้ ไม่จำเป็นต้องเปลี่ยนชื่อ branch เดิม `feat/labreserve` ตรวจ `.gitignore` และ `git diff --cached` ก่อน push ไม่รวม `.env`, database dump หรือ credentials
 
-พบ repository [KamitomeYuta/LabReserve](https://github.com/KamitomeYuta/LabReserve) ในบัญชี GitHub ที่เชื่อมแล้ว แต่ checkout นี้ยังไม่มี Git remote และยังไม่ได้ push source ขึ้นไป ณ เวลาที่จัดทำเอกสาร
+พบ repository [KamitomeYuta/LabReserve](https://github.com/KamitomeYuta/LabReserve) ในบัญชี GitHub ที่เชื่อมแล้ว โดย branch main มี source และ Blueprint ที่ใช้ deploy
 
 ## 2. Neon Free
 
@@ -96,6 +96,6 @@ curl --fail --show-error https://<ชื่อจริง>.onrender.com/health/
 
 ## ผลตรวจของ configuration
 
-ยังต้องเชื่อมบัญชี สร้างบริการจริง และผ่าน smoke test ข้างต้นก่อนกล่าวว่าออนไลน์แล้ว ผลทดสอบ local ของแอปเดิมใน verification.md ไม่ใช่ผลทดสอบ Render/Neon
+ทดสอบ public HTTPS ผ่านหน้าแรกและ API จริง: readiness, สมัครสมาชิก, login, อ่านคลังอุปกรณ์, จอง, ได้ 409 เมื่อเวลาชน, ยกเลิก และ logout แล้วเข้าถึงบัญชีไม่ได้
 
 เอกสารอ้างอิง configuration: [Blueprint](https://render.com/docs/blueprint-spec), [Environment variables](https://render.com/docs/environment-variables), [Health checks](https://render.com/docs/health-checks)
