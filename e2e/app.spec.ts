@@ -30,7 +30,7 @@ test('admin manages equipment and keyboard navigation has visible controls', asy
   await page.getByLabel('รหัสอุปกรณ์').fill(`E2E-${Date.now()}`);
   await page.getByLabel('ชื่ออุปกรณ์').fill('อุปกรณ์ทดสอบ browser');
   await page.getByRole('button', { name: 'เพิ่มอุปกรณ์', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('เพิ่มอุปกรณ์แล้ว');
+  await expect(page.getByRole('status').filter({ hasText: 'เพิ่มอุปกรณ์แล้ว' })).toBeVisible();
 });
 test('mobile layout has no horizontal overflow and reports bad login', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
