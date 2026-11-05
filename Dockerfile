@@ -19,6 +19,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/apps/api/dist apps/api/dist
 COPY --from=build /app/apps/web/dist apps/web/dist
 COPY --from=build /app/apps/api/migrations apps/api/migrations
+COPY scripts/start-render.sh /app/start-render.sh
 USER node
 EXPOSE 3000
 CMD ["node", "apps/api/dist/apps/api/src/server.js"]

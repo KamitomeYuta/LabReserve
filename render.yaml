@@ -12,10 +12,7 @@ services:
     # Liveness avoids continuously waking Neon with database probes.
     # Check /health/ready manually after deployment and before demonstrations.
     healthCheckPath: /health/live
-    dockerCommand: >-
-      sh -c 'export APP_ORIGIN="${APP_ORIGIN:-$RENDER_EXTERNAL_URL}";
-      node apps/api/dist/apps/api/scripts/migrate.js &&
-      exec node apps/api/dist/apps/api/src/server.js'
+    dockerCommand: sh /app/start-render.sh
     envVars:
       - key: NODE_ENV
         value: production
