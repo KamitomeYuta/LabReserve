@@ -14,6 +14,10 @@
 
 นี่เป็นระบบอ้างอิงเพื่อเรียนรู้ที่ AI ช่วยสร้างตาม requirement ของเจ้าของโปรเจกต์ ยังไม่มีหลักฐานการดูแล production สาธารณะ ดู [ข้อจำกัดและผลตรวจจริง](docs/verification.md) และ [แนวทางนำไปใช้ใน portfolio](docs/portfolio.md)
 
+## เผยแพร่ออนไลน์ฟรี
+
+ใช้ [คู่มือ Render Free + Neon Free](docs/deploy-free.md) และ `render.yaml` ที่รากโปรเจกต์ โดยใช้ Docker image เดิม มี HTTPS และ migration ก่อนเริ่ม server ยังต้องเชื่อมบัญชีและตรวจเว็บจริงก่อนมีลิงก์สาธารณะ
+
 ## เปิด demo ด้วย Docker (เริ่มตรงนี้)
 
 ต้องมี Docker Desktop ที่เปิดอยู่ และ Git หากจะ clone โปรเจกต์ คำสั่งทั้งหมดรันจากโฟลเดอร์รากที่มี `package.json` และ `compose.yaml`

@@ -1,0 +1,27 @@
+# Free portfolio demo: Render web service + external Neon Free database.
+# No Render database, paid disk, worker, or cron service is provisioned.
+services:
+  - type: web
+    name: labreserve
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    autoDeployTrigger: 'off'
+    # Liveness avoids continuously waking Neon with database probes.
+    # Check /health/ready manually after deployment and before demonstrations.
+    healthCheckPath: /health/live
+    dockerCommand: >-
+      sh -c 'export APP_ORIGIN="${APP_ORIGIN:-$RENDER_EXTERNAL_URL}";
+      node apps/api/dist/apps/api/scripts/migrate.js &&
+      exec node apps/api/dist/apps/api/src/server.js'
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: '1'
+      - key: CSRF_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
