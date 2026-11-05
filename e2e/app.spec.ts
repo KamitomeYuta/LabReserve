@@ -21,9 +21,10 @@ test('member can register, book, inspect history and cancel', async ({ page }) =
 });
 test('admin manages equipment and keyboard navigation has visible controls', async ({ page }) => {
   await page.goto('/');
-  await page.keyboard.press('Tab');
-  await expect(page.locator(':focus')).toHaveCount(1);
-  await page.getByLabel('อีเมล').fill('admin@labreserve.test');
+  const email = page.getByLabel('อีเมล');
+  await email.fill('admin@labreserve.test');
+  await email.press('Tab');
+  await expect(page.getByLabel('รหัสผ่าน', { exact: true })).toBeFocused();
   await page.getByLabel('รหัสผ่าน', { exact: true }).fill('Local-demo-123!');
   await page.getByRole('button', { name: 'เข้าสู่ระบบ', exact: true }).click();
   await page.getByRole('link', { name: 'จัดการอุปกรณ์', exact: true }).click();
