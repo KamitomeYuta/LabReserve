@@ -9,7 +9,7 @@ export const credentialsSchema = z.object({
   email: z.string().trim().toLowerCase().max(254).pipe(z.email()),
   password: z.string().min(12).max(128),
 });
-export const equipmentSchema = z.object({
+const equipmentFields = z.object({
   assetCode: z
     .string()
     .trim()
@@ -17,9 +17,12 @@ export const equipmentSchema = z.object({
     .max(40)
     .regex(/^[A-Za-z0-9_-]+$/),
   name: z.string().trim().min(1).max(120),
-  description: z.string().trim().max(1000).default(''),
+  description: z.string().trim().max(1000),
 });
-export const equipmentPatchSchema = equipmentSchema
+export const equipmentSchema = equipmentFields.extend({
+  description: equipmentFields.shape.description.default(''),
+});
+export const equipmentPatchSchema = equipmentFields
   .partial()
   .extend({ active: z.boolean().optional() })
   .refine((v) => Object.keys(v).length > 0);

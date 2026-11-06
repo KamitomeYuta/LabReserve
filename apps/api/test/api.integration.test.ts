@@ -108,6 +108,25 @@ describe('authentication and equipment boundaries', () => {
     expect((await c.agent.get('/api/v1/equipment/not-a-uuid')).status).toBe(400);
     expect((await c.agent.get('/api/v1/equipment?q=%27%20OR%201=1--')).body.total).toBe(0);
   });
+  it('preserves descriptions across booking toggles and allows explicitly clearing one', async () => {
+    const admin = await client('admin@example.test', 'admin');
+    const path = '/api/v1/equipment/' + (await equipment(admin));
+    const patch = (body: object) =>
+      admin.agent
+        .patch(path)
+        .set('Origin', config.origin)
+        .set('X-CSRF-Token', admin.csrf)
+        .send(body);
+    for (const active of [false, true]) {
+      expect((await patch({ active })).status).toBe(200);
+      expect((await admin.agent.get(path)).body.item).toMatchObject({
+        active,
+        description: 'กล้องทดสอบ',
+      });
+    }
+    expect((await patch({})).status).toBe(400);
+    expect((await patch({ description: '' })).body.item.description).toBe('');
+  });
   it('rejects a non-ASCII CSRF header without returning a server error', async () => {
     const c = await client();
     const result = await c.agent
