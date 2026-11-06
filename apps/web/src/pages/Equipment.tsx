@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useState, type SubmitEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -159,7 +159,7 @@ export function EquipmentDetail() {
       setBusy(false);
     }
   }
-  async function book(e: FormEvent) {
+  async function book(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(undefined);
     setBusy(true);
@@ -264,7 +264,7 @@ export function AdminEquipment() {
     [busy, setBusy] = useState(false),
     [editing, setEditing] = useState<Equipment>();
   const state = useLoad(() => api<PageResult<Equipment>>(`/equipment?page=${page}`), String(page));
-  async function save(e: FormEvent<HTMLFormElement>) {
+  async function save(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const form = e.currentTarget,
       d = new FormData(form);

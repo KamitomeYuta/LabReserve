@@ -1,8 +1,8 @@
 import { z } from 'zod';
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  DATABASE_URL: z.string().url(),
-  APP_ORIGIN: z.string().url(),
+  DATABASE_URL: z.url(),
+  APP_ORIGIN: z.url(),
   CSRF_SECRET: z.string().min(32),
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   TRUST_PROXY: z.enum(['0', '1']).default('0'),

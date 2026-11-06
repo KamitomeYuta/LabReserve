@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useState, type SubmitEvent } from 'react';
 import { Link, NavLink, Route, Routes, useNavigate } from 'react-router-dom';
 import {
   ArrowUpRight,
@@ -20,7 +20,7 @@ function Auth({ onLogin }: { onLogin: (u: User) => void }) {
   const [register, setRegister] = useState(false),
     [error, setError] = useState<unknown>(),
     [busy, setBusy] = useState(false);
-  async function submit(e: FormEvent<HTMLFormElement>) {
+  async function submit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     const d = new FormData(e.currentTarget);
     setBusy(true);
