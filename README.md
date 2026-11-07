@@ -22,6 +22,7 @@ Integration test ส่งคำขอจากสองบัญชีพร้
 
 - **React และ TypeScript → Express → PostgreSQL** — เว็บและ API ใช้ origin เดียวกัน ส่วนฐานข้อมูลเก็บรายการจองพร้อมประวัติใน transaction เดียว [ดูสถาปัตยกรรม](docs/architecture.md) · [API contract](docs/openapi.json)
 - **Docker, Render Free และ Neon Free** — เดโมให้ทดลองผ่าน HTTPS ส่วน GitHub Actions รัน unit, integration และ browser tests [ผล CI ของการแก้บั๊ก](https://github.com/KamitomeYuta/LabReserve/actions/runs/42258299080) · [ผลตรวจและขอบเขต](docs/verification.md)
+- **DevSecOps** — CodeQL วิเคราะห์โค้ด และ Trivy สแกน Docker image ที่ใช้รันแอป ตรวจผลจากแท็บ Actions และ Security ของ GitHub [วิธีอ่านผลและแก้ไข](docs/security-checks.md)
 - **ทดลองกับโค้ด** — [รันในเครื่องและรันเทสต์](docs/development.md) · [เหตุผลการออกแบบ](docs/adr/README.md) · [วิธี deploy](docs/deploy-free.md) · [การดูแลและกู้คืน](docs/operations.md)
 
 ## สำหรับผู้เรียน
