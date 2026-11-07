@@ -38,6 +38,16 @@ jobs:
         with:
           persist-credentials: false
       - run: docker build --pull --tag labreserve:scan .
+      - name: Check runtime dependencies as the application user
+        run: |
+          docker run --rm labreserve:scan node --input-type=module -e "
+            import assert from 'node:assert/strict';
+            import argon2 from 'argon2';
+            import { createApp } from './apps/api/dist/apps/api/src/app.js';
+            assert.equal(typeof createApp, 'function');
+            assert.equal(await argon2.verify(await argon2.hash('test'), 'test'), true);
+            assert.notEqual(process.getuid(), 0);
+          "
       - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: labreserve:scan
@@ -57,7 +67,7 @@ jobs:
           for result in report["Results"]:
               for issue in result.get("Vulnerabilities") or []:
                   fix = issue.get("FixedVersion")
-                  print(issue["Severity"], issue["VulnerabilityID"], issue["PkgName"],
+                  print(result["Target"], issue["Severity"], issue["VulnerabilityID"], issue["PkgName"],
                         issue["InstalledVersion"], "->", fix or "no fix listed")
                   if fix:
                       fixable += 1
